@@ -18,6 +18,10 @@ public class ApiGatewayApplication {
     @Bean
     public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
         return builder.routes()
+                .route("reviews-service", r -> r
+                        .path("/api/reviews/**")
+                        .uri("http://localhost:8081"
+                        ))
                 .route("microservice_project", r -> r
                         .path("/project/**")  // ← Change le path pour éviter les conflits
                         .filters(f -> f.rewritePath(
