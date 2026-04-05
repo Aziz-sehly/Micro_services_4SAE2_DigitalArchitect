@@ -13,7 +13,8 @@ public interface IServiceProposal {
     void deleteProposal(int id);
     List<Proposal> getProposalsByProjectId(int projectId);
     List<Proposal> getProposalsByFreelancerId(int freelancerId);
-
+    Proposal acceptProposal(int proposalId, String clientId);
+    Proposal withdrawProposal(int proposalId, String freelancerId);
     // Méthodes Feign — comme dans le cours
     Project getProjectById(int id);
     User getFreelancerById(int id);
