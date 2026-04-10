@@ -7,6 +7,7 @@ import com.esprit.microservice_project.Entity.Status;
 import com.esprit.microservice_project.Repository.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 
 @Service
@@ -19,6 +20,7 @@ public class ServiceProject implements IServiceProject {
         return (s == null || s.isBlank()) ? null : s;
     }
 
+    // ✅ CREATE
     @Override
     public Project addProject(Project project) {
         if (project.getStatus() == null) {
@@ -27,8 +29,10 @@ public class ServiceProject implements IServiceProject {
         return projectRepository.save(project);
     }
 
+    // ✅ UPDATE
     @Override
     public Project updateProject(int id, Project newProject) {
+
         Project existingProject = projectRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
@@ -43,42 +47,49 @@ public class ServiceProject implements IServiceProject {
         existingProject.setStatus(newProject.getStatus());
         existingProject.setDeadline(newProject.getDeadline());
 
-        // ← ADD
+        // ✅ ONLY EMAIL can be updated
         if (newProject.getClientEmail() != null) {
             existingProject.setClientEmail(newProject.getClientEmail());
         }
 
-        if (newProject.getClient() != null) {
-            existingProject.setClient(newProject.getClient());
-        }
+        // ❌ DO NOT TOUCH clientId (comes from JWT)
 
         return projectRepository.save(existingProject);
     }
+
+    // ✅ GET ALL
     @Override
     public List<Project> getProjects() {
         return projectRepository.findAll();
     }
 
+    // ✅ GET ONE
     @Override
     public Project getProject(int id) {
-        return projectRepository.findById(id).get();
+        return projectRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
     }
 
+    // ✅ DELETE
     @Override
     public void deleteProject(int id) {
-        if (projectRepository.existsById(id))
+        if (projectRepository.existsById(id)) {
             projectRepository.deleteById(id);
+        }
     }
 
+    // ✅ GET PROJECTS BY KEYCLOAK USER
     @Override
-    public List<Project> getProjectsByClientId(int clientId) {
-        return projectRepository.findByClient_id(clientId);
+    public List<Project> getProjectsByClientId(String clientId) {
+        return projectRepository.findByClientId(clientId);
     }
 
+    // ✅ SEARCH
     @Override
     public List<Project> search(String query, String category,
                                 Status status, Experience experience,
                                 Float budgetMin, Float budgetMax) {
+
         return projectRepository.search(
                 blank(query),
                 blank(category),
@@ -88,9 +99,13 @@ public class ServiceProject implements IServiceProject {
                 budgetMax
         );
     }
+
+    // ✅ FILTER
     @Override
-    public List<Project> filter(String category, Status status, Experience experience,
+    public List<Project> filter(String category, Status status,
+                                Experience experience,
                                 Float budgetMin, Float budgetMax) {
+
         return projectRepository.filter(
                 blank(category),
                 status,
@@ -100,95 +115,53 @@ public class ServiceProject implements IServiceProject {
         );
     }
 
-
+    // ✅ CLIENT STATS (filtered by user)
     @Override
-    public ProjectStatsDTO getClientStats(int clientId) {
-        List<Project> projects = projectRepository.findAll();
+    public ProjectStatsDTO getClientStats(String clientId) {
+        List<Project> projects = projectRepository.findByClientId(clientId);
         return buildStats(projects);
     }
 
+    // ✅ FREELANCER STATS (all projects)
     @Override
     public ProjectStatsDTO getFreelancerStats() {
-        List<Project> projects = projectRepository.findAll();
-        return buildStats(projects);
+        return buildStats(projectRepository.findAll());
     }
 
+    // ✅ COMMON STATS BUILDER
     private ProjectStatsDTO buildStats(List<Project> projects) {
+
         ProjectStatsDTO dto = new ProjectStatsDTO();
 
         dto.setTotalProjects(projects.size());
-        dto.setOpenProjects(      projects.stream().filter(p -> p.getStatus() == Status.OPEN).count());
+        dto.setOpenProjects(projects.stream().filter(p -> p.getStatus() == Status.OPEN).count());
         dto.setInProgressProjects(projects.stream().filter(p -> p.getStatus() == Status.IN_PROGRESS).count());
-        dto.setCompletedProjects( projects.stream().filter(p -> p.getStatus() == Status.COMPLETED).count());
-        dto.setCancelledProjects( projects.stream().filter(p -> p.getStatus() == Status.CANCELLED).count());
-        dto.setArchivedProjects(  projects.stream().filter(p -> p.getStatus() == Status.DRAFT).count());
+        dto.setCompletedProjects(projects.stream().filter(p -> p.getStatus() == Status.COMPLETED).count());
+        dto.setCancelledProjects(projects.stream().filter(p -> p.getStatus() == Status.CANCELLED).count());
+        dto.setArchivedProjects(projects.stream().filter(p -> p.getStatus() == Status.DRAFT).count());
 
-        // Budgets
         double avgMin = projects.stream()
                 .mapToDouble(p -> p.getBudget_min() != null ? p.getBudget_min() : 0)
                 .average().orElse(0);
+
         double avgMax = projects.stream()
                 .mapToDouble(p -> p.getBudget_max() != null ? p.getBudget_max() : 0)
                 .average().orElse(0);
-        dto.setAverageBudgetMin(Math.round(avgMin * 100.0) / 100.0);
-        dto.setAverageBudgetMax(Math.round(avgMax * 100.0) / 100.0);
-        dto.setAverageBudget(   Math.round(((avgMin + avgMax) / 2) * 100.0) / 100.0);
-        dto.setTotalBudgetMax(  projects.stream()
-                .mapToDouble(p -> p.getBudget_max() != null ? p.getBudget_max() : 0).sum());
 
-        // Top catégories
-        List<String> topCategories = projects.stream()
-                .filter(p -> p.getCategory() != null)
-                .collect(java.util.stream.Collectors.groupingBy(
-                        Project::getCategory, java.util.stream.Collectors.counting()))
-                .entrySet().stream()
-                .sorted(java.util.Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(5)
-                .map(java.util.Map.Entry::getKey)
-                .collect(java.util.stream.Collectors.toList());
-        dto.setTopCategories(topCategories);
+        dto.setAverageBudgetMin(avgMin);
+        dto.setAverageBudgetMax(avgMax);
+        dto.setAverageBudget((avgMin + avgMax) / 2);
 
-        // Top skills
-        List<String> topSkills = projects.stream()
-                .filter(p -> p.getSkills() != null && !p.getSkills().isBlank())
-                .flatMap(p -> java.util.Arrays.stream(p.getSkills().split(",")))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(java.util.stream.Collectors.groupingBy(
-                        s -> s, java.util.stream.Collectors.counting()))
-                .entrySet().stream()
-                .sorted(java.util.Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(8)
-                .map(java.util.Map.Entry::getKey)
-                .collect(java.util.stream.Collectors.toList());
-        dto.setTopSkills(topSkills);
-
-        // Projets populaires (simulé par budget décroissant — remplacer par proposalsCount si dispo)
-        List<ProjectStatsDTO.PopularProject> popular = projects.stream()
-                .sorted((a, b) -> Float.compare(
-                        b.getBudget_max() != null ? b.getBudget_max() : 0,
-                        a.getBudget_max() != null ? a.getBudget_max() : 0))
-                .limit(5)
-                .map(p -> new ProjectStatsDTO.PopularProject(
-                        p.getId(),
-                        p.getTitle(),
-                        p.getCategory(),
-                        p.getBudget_min() != null ? p.getBudget_min() : 0,
-                        p.getBudget_max() != null ? p.getBudget_max() : 0,
-                        p.getStatus() != null ? p.getStatus().name() : "",
-                        0L
-                ))
-                .collect(java.util.stream.Collectors.toList());
-        dto.setMostPopularProjects(popular);
+        dto.setTotalBudgetMax(projects.stream()
+                .mapToDouble(p -> p.getBudget_max() != null ? p.getBudget_max() : 0)
+                .sum());
 
         return dto;
     }
 
-    // ADD après la méthode getFreelancerStats()
-
+    // ✅ GET BY ID (used for email notification)
     @Override
     public Project getProjectById(int id) {
         return projectRepository.findById(id).orElse(null);
     }
-
 }

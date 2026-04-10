@@ -24,7 +24,5 @@ public class User {
     private String email;
     private String Role;
 
-    @OneToMany(mappedBy = "client")
-    @JsonIgnore
-    private List<Project> projects;
+
 }

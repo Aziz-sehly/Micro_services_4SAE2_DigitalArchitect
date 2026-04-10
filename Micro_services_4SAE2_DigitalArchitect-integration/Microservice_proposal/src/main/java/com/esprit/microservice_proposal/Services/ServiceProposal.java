@@ -71,6 +71,16 @@ public class ServiceProposal implements IServiceProposal {
         return proposalRepository.findByFreelancerId(freelancerId);
     }
 
+    @Override
+    public Proposal acceptProposal(int proposalId, String clientId) {
+        return null;
+    }
+
+    @Override
+    public Proposal withdrawProposal(int proposalId, String freelancerId) {
+        return null;
+    }
+
     // ✅ Feign — récupérer Project depuis microservice_project
     @Override
     public Project getProjectById(int id) {

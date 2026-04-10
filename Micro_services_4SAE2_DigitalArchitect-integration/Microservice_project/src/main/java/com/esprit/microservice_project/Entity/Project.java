@@ -1,6 +1,5 @@
 package com.esprit.microservice_project.Entity;
 
-import com.esprit.microservice_project.DTO.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -21,12 +20,11 @@ public class Project {
     private Integer id;
 
     // ← REMPLACER client_id int par ceci
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "client_id", nullable = false)
-    private User client;
-    // ADD ce champ après private User client;
-    @Column(name = "client_email")
+    private String clientId;
     private String clientEmail;
+
+    // ADD ce champ après private User client;
+
 
     private String title;
     private String description;

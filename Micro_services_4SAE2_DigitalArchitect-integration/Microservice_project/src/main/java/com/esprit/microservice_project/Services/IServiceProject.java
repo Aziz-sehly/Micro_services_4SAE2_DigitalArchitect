@@ -13,14 +13,14 @@ public interface IServiceProject {
     List<Project> getProjects();
     Project getProject(int id);
     void deleteProject(int id);
-    List<Project> getProjectsByClientId(int clientId);
+    List<Project> getProjectsByClientId(String clientId);
     List<Project> search(String query, String category,
                          Status status, Experience experience,
                          Float budgetMin, Float budgetMax);
     List<Project> filter(String category, Status status, Experience experience,
                          Float budgetMin, Float budgetMax);
 
-    ProjectStatsDTO getClientStats(int clientId);
+    ProjectStatsDTO getClientStats(String clientId);
     ProjectStatsDTO getFreelancerStats();
     // ADD à la fin de l'interface, avant la dernière accolade
 
