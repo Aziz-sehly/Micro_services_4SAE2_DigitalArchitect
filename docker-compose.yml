@@ -1,0 +1,81 @@
+services:
+
+  mysql-project:
+    image: mysql:5.7
+    container_name: mysql-project
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: freelance
+    ports:
+      - "3307:3306"
+    networks:
+      - micro-net
+
+  mysql-proposal:
+    image: mysql:5.7
+    container_name: mysql-proposal
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: freelance1
+    ports:
+      - "3308:3306"
+    networks:
+      - micro-net
+
+  eureka-server:
+    image: azizsehli/eurikaregister:latest
+    container_name: eureka-server
+    ports:
+      - "8762:8761"
+    networks:
+      - micro-net
+
+  api-gateway:
+    image: azizsehli/apigateway:latest
+    container_name: api-gateway
+    ports:
+      - "8764:8765"
+    depends_on:
+      - eureka-server
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - micro-net
+
+  project-service:
+    image: azizsehli/project:latest
+    container_name: project-service
+    ports:
+      - "8093:8091"
+    depends_on:
+      - mysql-project
+      - eureka-server
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-project:3306/freelance
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - micro-net
+
+  proposal-service:
+    image: proposal:latest
+    container_name: proposal-service
+    ports:
+      - "8094:8092"
+    depends_on:
+      - mysql-proposal
+      - eureka-server
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-proposal:3306/freelance1
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - micro-net
+
+networks:
+  micro-net:
+    driver: bridge

@@ -1,0 +1,25 @@
+# Build
+target/
+*.jar
+*.war
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Node
+node_modules/
+
+# Database
+*.mv.db
+*.trace.db
+data/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
