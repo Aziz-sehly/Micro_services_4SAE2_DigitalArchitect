@@ -7,8 +7,12 @@ import java.util.Optional;
 
 public interface IFreelancerPreferencesService {
     List<FreelancerPreferences> getAll();
-    Optional<FreelancerPreferences> getByFreelancerId(Integer freelancerId);
-    FreelancerPreferences create(Integer freelancerId, FreelancerPreferences preferences);
-    FreelancerPreferences update(Integer freelancerId, FreelancerPreferences preferences);
-    void delete(Integer freelancerId);
+
+    Optional<FreelancerPreferences> getByFreelancerId(String freelancerId);
+
+    FreelancerPreferences create(String freelancerId, FreelancerPreferences preferences);
+
+    FreelancerPreferences update(String freelancerId, FreelancerPreferences preferences);
+
+    void delete(String freelancerId);
 }

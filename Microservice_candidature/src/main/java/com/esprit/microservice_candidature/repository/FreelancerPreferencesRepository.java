@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface FreelancerPreferencesRepository extends JpaRepository<FreelancerPreferences, Integer> {
-    Optional<FreelancerPreferences> findByFreelancerId(Integer freelancerId);
+    Optional<FreelancerPreferences> findByFreelancerId(String freelancerId);
 }

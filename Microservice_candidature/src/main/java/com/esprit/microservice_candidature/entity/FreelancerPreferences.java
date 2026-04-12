@@ -21,8 +21,9 @@ public class FreelancerPreferences {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "freelancer_id", nullable = false, unique = true)
-    private Integer freelancerId;
+    /** Identifiant Keycloak du freelancer ({@code sub} JWT). */
+    @Column(name = "freelancer_id", nullable = false, unique = true, length = 128)
+    private String freelancerId;
 
     @ElementCollection
     @CollectionTable(name = "preferences_skills", joinColumns = @JoinColumn(name = "preferences_id"))

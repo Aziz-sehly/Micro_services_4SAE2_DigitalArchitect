@@ -8,7 +8,7 @@
     <artifactId>plateforme-freelance-parent</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Plateforme Freelance - Microservices</name>
+    <name>Micro_services_4SAE2_DigitalArchitect-integration</name>
     <description>Parent POM pour la plateforme freelance (architecture micro-services)</description>
 
     <modules>
@@ -17,8 +17,6 @@
         <module>Microservice_project</module>
         <module>Microservice_proposal</module>
         <module>Microservice_candidature</module>
-        <module>User</module>
-        <module>Reviews-Service-fixed</module>
         <module>payment/payment</module>
         <module>milestone/milestone</module>
     </modules>
@@ -29,4 +27,24 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-commons</artifactId>
+            <version>5.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <version>4.0.3</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <version>7.0.5</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
 </project>

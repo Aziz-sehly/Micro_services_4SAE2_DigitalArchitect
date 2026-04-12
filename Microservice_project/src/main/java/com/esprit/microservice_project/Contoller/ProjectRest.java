@@ -41,28 +41,36 @@ public class ProjectRest {
     }
 
     // ── CREATE PROJECT ─────────────────────────────────────────
+    // ── CREATE PROJECT (manual, no AI) ────────────────────────
     @PostMapping("/add")
     @PreAuthorize("hasRole('client')")
     public Project addProject(@RequestBody Project p, @AuthenticationPrincipal Jwt jwt) {
+        p.setClientId(jwt.getSubject());
+        p.setClientEmail(jwt.getClaim("email"));
+        return serviceproject.addProject(p);
+    }
 
-        // ✅ Link project to Keycloak user
+    // ── CREATE PROJECT (with AI suggestions) ──────────────────
+    @PostMapping("/add/ai")
+    @PreAuthorize("hasRole('client')")
+    public Project addProjectWithAI(@RequestBody Project p, @AuthenticationPrincipal Jwt jwt) {
         p.setClientId(jwt.getSubject());
         p.setClientEmail(jwt.getClaim("email"));
 
-        boolean needsAI = p.getDescription() != null && !p.getDescription().isBlank()
-                && (isBlank(p.getTitle()) || isBlank(p.getSkills())
-                || p.getBudget_min() == null || p.getBudget_max() == null);
+        if (p.getDescription() != null && !p.getDescription().isBlank()) {
+            try {
+                String duration = p.getDuration() != null ? p.getDuration() : "";
+                ProjectAISuggestResponse suggestion = aiSuggestService.suggest(p.getDescription(), duration);
 
-        if (needsAI) {
-            String duration = p.getDuration() != null ? p.getDuration() : "";
+                if (isBlank(p.getTitle()))     p.setTitle(suggestion.getTitle());
+                if (isBlank(p.getSkills()))    p.setSkills(suggestion.getSkills());
+                if (p.getBudget_min() == null) p.setBudget_min(suggestion.getBudgetMin());
+                if (p.getBudget_max() == null) p.setBudget_max(suggestion.getBudgetMax());
 
-            ProjectAISuggestResponse suggestion =
-                    aiSuggestService.suggest(p.getDescription(), duration);
-
-            if (isBlank(p.getTitle()))     p.setTitle(suggestion.getTitle());
-            if (isBlank(p.getSkills()))    p.setSkills(suggestion.getSkills());
-            if (p.getBudget_min() == null) p.setBudget_min(suggestion.getBudgetMin());
-            if (p.getBudget_max() == null) p.setBudget_max(suggestion.getBudgetMax());
+            } catch (Exception e) {
+                System.err.println("AI suggest failed: " + e.getMessage());
+                // continues saving without AI suggestions
+            }
         }
 
         return serviceproject.addProject(p);
