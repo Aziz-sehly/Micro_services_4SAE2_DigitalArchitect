@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { ReviewService } from '../../front/services/review.service';
 
 interface Review {
   id: number;
@@ -15,7 +15,7 @@ interface Review {
 @Component({
   selector: 'app-admin-reviews',
   standalone: true,
-  imports: [CommonModule, HttpClientModule],
+  imports: [CommonModule],
   template: `
     <div class="admin-reviews">
       <div class="page-header">
@@ -238,26 +238,25 @@ export class AdminReviewsComponent implements OnInit {
   reviews: Review[] = [];
   averageRating = 0;
   loading = true;
-  private api = 'http://localhost:8081/api/reviews';
 
-  constructor(private http: HttpClient) {}
+  constructor(private reviewService: ReviewService) {}
 
   ngOnInit() { this.load(); }
 
   load() {
     this.loading = true;
-    this.http.get<Review[]>(this.api).subscribe({
-      next: (data) => { this.reviews = data; this.loading = false; },
+    this.reviewService.getAll().subscribe({
+      next: (data: any[]) => { this.reviews = data; this.loading = false; },
       error: () => { this.loading = false; }
     });
-    this.http.get<{ averageRating: number }>(`${this.api}/average`).subscribe({
+    this.reviewService.getAverageRating().subscribe({
       next: (d) => { this.averageRating = d.averageRating; }
     });
   }
 
   deleteReview(id: number) {
     if (!confirm('Are you sure you want to delete this review?')) return;
-    this.http.delete(`${this.api}/${id}`).subscribe(() => {
+    this.reviewService.delete(id).subscribe(() => {
       this.reviews = this.reviews.filter(r => r.id !== id);
     });
   }

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { clientOnlyGuard, freelancerOnlyGuard } from './guards/profile-access.guard';
 
 export const routes: Routes = [
   {
@@ -30,6 +31,7 @@ export const routes: Routes = [
       },
       {
         path: 'my-proposals',
+        canActivate: [freelancerOnlyGuard],
         loadComponent: () => import('./components/my-proposals/my-proposals.component').then(m => m.MyProposalsComponent)
       },
       {
@@ -62,10 +64,12 @@ export const routes: Routes = [
       },
       {
         path: 'my-jobs',
+        canActivate: [clientOnlyGuard],
         loadComponent: () => import('./components/my-jobs/my-jobs.component').then(m => m.MyJobsComponent)
       },
       {
         path: 'proposals',
+        canActivate: [clientOnlyGuard],
         loadComponent: () => import('./components/proposals/proposals.component').then(m => m.ProposalsComponent)
       },
       {
@@ -74,10 +78,17 @@ export const routes: Routes = [
       },
       {
         path: 'profile',
-        loadComponent: () => import('./components/profile/profile.component').then(m => m.ProfileComponent)
+        redirectTo: 'account',
+        pathMatch: 'full'
+      },
+      {
+        path: 'account',
+        loadComponent: () =>
+          import('./components/account-redirect/account-redirect.component').then((m) => m.AccountRedirectComponent),
       },
       {
         path: 'profile-client',
+        canActivate: [clientOnlyGuard],
         loadComponent: () => import('./components/client-profile/client-profile.component').then(m => m.ClientProfileComponent)
       },
       {
@@ -90,14 +101,17 @@ export const routes: Routes = [
     },
       {
         path: 'profile-freelancer',
+        canActivate: [freelancerOnlyGuard],
         loadComponent: () => import('./components/freelancer-profile/freelancer-profile.component').then(m => m.FreelancerProfileComponent)
       },
       {
         path: 'milestones-client',
+        canActivate: [clientOnlyGuard],
         loadComponent: () => import('./components/milestone-client/milestone-client.component').then(m => m.MilestoneClientComponent)
       },
       {
         path: 'milestones-freelancer',
+        canActivate: [freelancerOnlyGuard],
         loadComponent: () => import('./components/milestone-freelancer/milestone-freelancer.component').then(m => m.MilestoneFreelancerComponent)
       },
       {

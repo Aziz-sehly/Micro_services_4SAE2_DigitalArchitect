@@ -1,3 +1,23 @@
+# Stack microservices
+# - MySQL : un conteneur par base (mysql-project, mysql-proposal, mysql-payment).
+# - Un conteneur par service applicatif ; noms fixes via container_name.
+# - Eureka / Project / Proposal : image Hub azizsehli/… (pull)
+# - Gateway / Payment / Forum / Candidature : build local puis tag azizsehli/…
+# - Gateway (hote) : http://localhost:8775  (conteneur ecoute sur 8765)
+#
+# Racine projet (OBLIGATOIRE, pas le dossier ApiGateway\) :
+#   docker compose build
+#   docker compose up -d
+#
+# Push Hub + demarrer : double-clic sur docker-hub-push-et-demarrer.cmd
+# (creer sur hub.docker.com les repos : apigateway, payment-service, forum-service, candidature)
+#
+# Ne pas pull payment-service|forum-service|candidature depuis le Hub tant qu’ils n’y sont pas publies.
+
+# Force Eureka dans Docker pour toutes les images (Hub ou locales) — évite localhost:8761 dans le JAR
+x-eureka-client-docker: &eureka-client-docker
+  SPRING_APPLICATION_JSON: '{"eureka":{"client":{"service-url":{"defaultZone":"http://eureka-server:8761/eureka/"}},"instance":{"prefer-ip-address":true}}}'
+
 services:
 
   mysql-project:
@@ -9,6 +29,13 @@ services:
       MYSQL_DATABASE: freelance
     ports:
       - "3307:3306"
+    volumes:
+      - mysql-project-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
     networks:
       - micro-net
 
@@ -21,6 +48,32 @@ services:
       MYSQL_DATABASE: freelance1
     ports:
       - "3308:3306"
+    volumes:
+      - mysql-proposal-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    networks:
+      - micro-net
+
+  mysql-payment:
+    image: mysql:8.0
+    container_name: mysql-payment
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: payment
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql-payment-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
     networks:
       - micro-net
 
@@ -33,48 +86,185 @@ services:
       - micro-net
 
   api-gateway:
+    build:
+      context: ./ApiGateway
+      dockerfile: Dockerfile
     image: azizsehli/apigateway:latest
     container_name: api-gateway
+    # Hote 8775 : evite le conflit si 8765 est deja pris sur la machine
     ports:
-      - "8764:8765"
+      - "8775:8765"
     depends_on:
       - eureka-server
     environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      <<: *eureka-client-docker
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+      # iss dans le JWT = localhost ; les clés sont chargees depuis l’hote via host.docker.internal
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/Job_Board_Realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://host.docker.internal:8180/realms/Job_Board_Realm/protocol/openid-connect/certs
     networks:
       - micro-net
 
   project-service:
+    build:
+      context: ./Microservice_project
+      dockerfile: Dockerfile
     image: azizsehli/project:latest
     container_name: project-service
     ports:
-      - "8093:8091"
+      - "18091:8091"
     depends_on:
-      - mysql-project
-      - eureka-server
+      mysql-project:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
     environment:
+      <<: *eureka-client-docker
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-project:3306/freelance
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/Job_Board_Realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://host.docker.internal:8180/realms/Job_Board_Realm/protocol/openid-connect/certs
     networks:
       - micro-net
 
   proposal-service:
-    image: proposal:latest
+    build:
+      context: ./Microservice_proposal
+      dockerfile: Dockerfile
+    image: azizsehli/proposal:latest
     container_name: proposal-service
     ports:
       - "8094:8092"
     depends_on:
-      - mysql-proposal
-      - eureka-server
+      mysql-proposal:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
     environment:
+      <<: *eureka-client-docker
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-proposal:3306/freelance1
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/Job_Board_Realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://host.docker.internal:8180/realms/Job_Board_Realm/protocol/openid-connect/certs
+      PROPOSAL_FEIGN_PROJECT_URL: http://project-service:8091/freelance
+      PROPOSAL_FEIGN_USER_URL: http://user-service:5088/api
     networks:
       - micro-net
+
+  payment-service:
+    build:
+      context: ./payment/payment
+      dockerfile: Dockerfile
+    image: azizsehli/payment-service:latest
+    container_name: payment-service
+    ports:
+      - "8099:8096"
+    depends_on:
+      mysql-payment:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    environment:
+      <<: *eureka-client-docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-payment:3306/payment
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+      SPRING_PROFILES_ACTIVE: docker
+    networks:
+      - micro-net
+
+  forum-service:
+    build:
+      context: ./Forum-Service-H2
+      dockerfile: Dockerfile
+    image: azizsehli/forum-service:latest
+    container_name: forum-service
+    # Hote 9082 : evite le conflit si 8082 est deja pris sur la machine
+    ports:
+      - "9082:8082"
+    depends_on:
+      - eureka-server
+    environment:
+      <<: *eureka-client-docker
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/Job_Board_Realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://host.docker.internal:8180/realms/Job_Board_Realm/protocol/openid-connect/certs
+    networks:
+      - micro-net
+
+  candidature-service:
+    build:
+      context: ./Microservice_candidature
+      dockerfile: Dockerfile
+    image: azizsehli/candidature:latest
+    container_name: candidature-service
+    ports:
+      - "8097:8093"
+    depends_on:
+      - eureka-server
+    environment:
+      <<: *eureka-client-docker
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/Job_Board_Realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://host.docker.internal:8180/realms/Job_Board_Realm/protocol/openid-connect/certs
+    networks:
+      - micro-net
+
+  postgres-user:
+    image: postgres:16-alpine
+    container_name: postgres-user
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 43682509
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-user-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d userdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - micro-net
+
+  user-service:
+    build:
+      context: ../Micro_services_4SAE2_DigitalArchitect-user_csharp/Micro_services_4SAE2_DigitalArchitect-user_csharp/microservice-user
+      dockerfile: Dockerfile
+    container_name: user-service
+    restart: unless-stopped
+    ports:
+      - "5088:5088"
+    depends_on:
+      postgres-user:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=postgres-user;Port=5432;Database=userdb;Username=postgres;Password=43682509"
+      Keycloak__Url: "http://host.docker.internal:8180"
+      Keycloak__Realm: "Job_Board_Realm"
+      Keycloak__AdminClientId: "microservice-user-client"
+      Keycloak__AdminClientSecret: "D4BBzxa1f47mVGvHCliMD6cYjCpqIqE0"
+      Jwt__Authority: "http://localhost:8180/realms/Job_Board_Realm"
+      Jwt__MetadataAddress: "http://host.docker.internal:8180/realms/Job_Board_Realm/.well-known/openid-configuration"
+      Jwt__Audience: "account"
+    networks:
+      - micro-net
+
+volumes:
+  mysql-project-data:
+  mysql-proposal-data:
+  mysql-payment-data:
+  postgres-user-data:
 
 networks:
   micro-net:

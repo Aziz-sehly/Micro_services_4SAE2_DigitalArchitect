@@ -1,8 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 import {
   Experience,
   FreelancerPreferences,
@@ -15,6 +15,7 @@ import {
 import { ProjectService, AISuggestResponse } from '../../services/project.service';
 import { ProjectProposalService } from '../../services/project-proposal.service';
 import { CandidatureService } from '../../services/candidature.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-client-profile',
@@ -23,7 +24,9 @@ import { CandidatureService } from '../../services/candidature.service';
   templateUrl: './client-profile.component.html',
   styleUrls: ['./client-profile.component.scss']
 })
-export class ClientProfileComponent implements OnInit {
+export class ClientProfileComponent implements OnInit, OnDestroy {
+  private userSub?: Subscription;
+  private lastLoadedClientId: number | null = null;
 
   loading = true;
   projects: Project[] = [];
@@ -46,7 +49,7 @@ export class ClientProfileComponent implements OnInit {
   filterBudgetMax: number | '' = '';
   categories: string[] = [];
 
-  private readonly clientId = 1;
+  private get clientId(): number { return this.authService.getCurrentUser()?.backendId ?? 0; }
   totalProjects    = 0;
   pendingProposals = 0;
   totalSpent       = 0;
@@ -94,13 +97,32 @@ export class ClientProfileComponent implements OnInit {
     private readonly projectService: ProjectService,
     private readonly proposalService: ProjectProposalService,
     private readonly candidatureService: CandidatureService,
-    private readonly router: Router
+    private readonly router: Router,
+    public readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.projectService.getCategories().subscribe((c) => (this.categories = c));
     this.projectService.getStats().subscribe((s) => (this.stats = s));
-    this.load();
+    this.userSub = this.authService.currentUser$.subscribe((u) => {
+      if (!u) {
+        this.loading = false;
+        return;
+      }
+      const id = u.backendId ?? 0;
+      if (u.profileIncomplete && id === 0) {
+        this.loading = false;
+        return;
+      }
+      if (id > 0 && id !== this.lastLoadedClientId) {
+        this.lastLoadedClientId = id;
+        this.load();
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.userSub?.unsubscribe();
   }
 
   // ── LOAD ──────────────────────────────────────────────────────────────────
@@ -379,12 +401,41 @@ export class ClientProfileComponent implements OnInit {
 
   acceptProposal(proposalId: number, ev: Event): void {
     ev.stopPropagation();
-    this.proposalService.accept(proposalId).subscribe(() => this.load());
+    this.proposalService.accept(proposalId).subscribe({
+      next: () => this.load(),
+      error: (err) => {
+        const msg = this.formatProposalActionError(err, 'Accept failed');
+        console.error('AcceptProposal failed:', msg);
+        alert(msg);
+      },
+    });
   }
 
   rejectProposal(proposalId: number, ev: Event): void {
     ev.stopPropagation();
-    this.proposalService.reject(proposalId).subscribe(() => this.load());
+    this.proposalService.reject(proposalId).subscribe({
+      next: () => this.load(),
+      error: (err) => {
+        const msg = this.formatProposalActionError(err, 'Reject failed');
+        console.error('RejectProposal failed:', msg);
+        alert(msg);
+      },
+    });
+  }
+
+  /** Affiche le détail Feign (502) quand le message générique « Upstream service error » est renvoyé. */
+  private formatProposalActionError(err: any, fallback: string): string {
+    const e = err?.error;
+    if (typeof e === 'string') return e;
+    if (e && typeof e === 'object') {
+      const detail = e.detail;
+      const short = e.error;
+      if (detail && short && short !== 'Upstream service error')
+        return `${short} — ${detail}`;
+      if (detail) return String(detail);
+      if (short) return String(short);
+    }
+    return String(err?.message ?? fallback);
   }
 
   scrollTo(sectionId: string): void {

@@ -22,7 +22,9 @@ public interface IServiceProject {
 
     ProjectStatsDTO getClientStats(String clientId);
     ProjectStatsDTO getFreelancerStats();
-    // ADD à la fin de l'interface, avant la dernière accolade
 
     Project getProjectById(int id);
+
+    /** Mise à jour du statut uniquement (ex. après acceptation d’une proposition). */
+    Project updateProjectStatus(int id, Status newStatus, String clientKeycloakSub);
 }

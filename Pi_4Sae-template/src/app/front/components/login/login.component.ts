@@ -1,8 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { ProjectService } from '../../services/project.service';
+import { AuthTokenService } from '../../../core/auth-token.service';
+import { KeycloakPasswordAuthService } from '../../../core/keycloak-password-auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -18,13 +22,14 @@ import { AuthService } from '../../services/auth.service';
 
         <form (ngSubmit)="onSubmit()" class="login-form">
           <div class="form-group">
-            <label for="email">Email Address</label>
+            <label for="email">Identifiant Keycloak (username)</label>
             <input 
-              type="email" 
+              type="text" 
               id="email" 
               [(ngModel)]="email" 
               name="email"
-              placeholder="your@email.com"
+              autocomplete="username"
+              placeholder="ex. fares ou prenom.nom@domaine.com"
               required>
           </div>
 
@@ -47,9 +52,17 @@ import { AuthService } from '../../services/auth.service';
             <a href="#" class="forgot-link">Forgot password?</a>
           </div>
 
+          <p *ngIf="loginError" class="error-banner">{{ loginError }}</p>
+
           <button type="submit" class="submit-btn" [disabled]="loading">
             {{ loading ? 'Signing in...' : 'Sign In' }}
           </button>
+
+          <p class="hint-keycloak">
+            Realm <code>Job_Board_Realm</code>, client Angular <code>{{ keycloakClientId }}</code>.
+            Si erreur <strong>invalid_client</strong> : dans Keycloak, crée ce client en <strong>public</strong> + « Direct Access Grants »,
+            ou mets le bon <code>clientId</code> + <code>clientSecret</code> dans <code>environment.ts</code> (client confidential).
+          </p>
 
           <div class="divider">
             <span>OR</span>
@@ -283,6 +296,24 @@ import { AuthService } from '../../services/auth.service';
         }
       }
     }
+
+    .error-banner {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+    }
+
+    .hint-keycloak {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.75rem;
+      line-height: 1.4;
+      code { font-size: 0.7rem; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+    }
   `]
 })
 export class LoginComponent {
@@ -290,24 +321,44 @@ export class LoginComponent {
   password = '';
   rememberMe = false;
   loading = false;
+  loginError: string | null = null;
+  readonly keycloakClientId = environment.keycloak?.clientId ?? '';
 
   constructor(
-    private authService: AuthService,
-    private router: Router
+    private readonly authService: AuthService,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute,
+    private readonly keycloakAuth: KeycloakPasswordAuthService,
+    private readonly tokens: AuthTokenService,
+    private readonly projectService: ProjectService
   ) {}
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
+    this.loginError = null;
     this.loading = true;
-    this.authService.login(this.email, this.password).subscribe({
-      next: () => {
-        this.router.navigate(['/jobs']);
-      },
-      error: () => {
-        this.loading = false;
-      },
-      complete: () => {
-        this.loading = false;
-      }
-    });
+    try {
+      await this.keycloakAuth.login(this.email.trim(), this.password, this.rememberMe);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const invalidClient = msg.includes('invalid_client');
+      this.loginError = invalidClient
+        ? 'Keycloak : client inconnu ou credentials du client incorrects. Ouvre Admin → Clients : soit le client « ' +
+          this.keycloakClientId +
+          ' » existe et est PUBLIC (sans secret) avec Direct Access Grants, soit tu copies le vrai Client ID + Secret (onglet Credentials) dans environment.ts (champs keycloak.clientId et keycloak.clientSecret). Réponse : ' +
+          msg
+        : 'Connexion Keycloak impossible. Vérifie l’URL, l’identifiant / le mot de passe. Détail : ' + msg;
+      this.loading = false;
+      return;
+    }
+    const access = this.tokens.getAccessToken();
+    if (access) {
+      this.authService.applyKeycloakSession(access);
+      this.projectService.refreshProjects();
+    }
+    this.loading = false;
+    const raw = this.route.snapshot.queryParamMap.get('returnUrl');
+    const target =
+      raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/front/projects';
+    await this.router.navigateByUrl(target);
   }
 }

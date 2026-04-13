@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ProjectProposal } from '../../models/models';
 import { ProjectProposalService } from '../../services/project-proposal.service';
+import { AuthService } from '../../services/auth.service';
 
 const REFRESH_INTERVAL_MS = 20000;
 
@@ -25,10 +26,12 @@ export class MyProposalsComponent implements OnInit, OnDestroy {
   editDeliveryDays = 0;
   saving = false;
 
-  // TODO: remplacer par authService.user.id
-  private readonly freelancerId = 101;
+  private get freelancerId(): number { return this.authService.getCurrentUser()?.backendId ?? 0; }
 
-  constructor(private readonly proposalService: ProjectProposalService) {}
+  constructor(
+    private readonly proposalService: ProjectProposalService,
+    private readonly authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     this.load();

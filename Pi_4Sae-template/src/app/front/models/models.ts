@@ -1,12 +1,65 @@
-// User and Profile Models
+// User and Profile Models (UI-side, decoded from JWT + backend lookup)
 export interface User {
-  id: string;
+  id: string;          // Keycloak sub (UUID)
+  backendId?: number;  // Numeric ID from .NET user microservice
+  /** true si l’utilisateur Keycloak n’a pas de ligne correspondante dans la base .NET */
+  profileIncomplete?: boolean;
   email: string;
   firstName: string;
   lastName: string;
   userType: 'freelancer' | 'client';
   profileImage?: string;
   createdAt: Date;
+}
+
+// Backend User (.NET microservice)
+export type BackendRole = 'FREELANCER' | 'CLIENT' | 'ADMIN';
+
+export interface BackendUser {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  role: number;           // 0=FREELANCER, 1=CLIENT, 2=ADMIN
+  profilePicture?: string | null;
+  bio?: string | null;
+  phoneNumber?: string | null;
+  skills?: string | null;
+  portfolioUrl?: string | null;
+  companyName?: string | null;
+  isVerified: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string | null;
+  keycloakId?: string | null;
+}
+
+export interface UserCreateRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: number;           // 0=FREELANCER, 1=CLIENT, 2=ADMIN
+  profilePicture?: string;
+  bio?: string;
+  phoneNumber?: string;
+  skills?: string;
+  portfolioUrl?: string;
+  companyName?: string;
+}
+
+export interface UserUpdateRequest {
+  firstName?: string;
+  lastName?: string;
+  profilePicture?: string;
+  bio?: string;
+  phoneNumber?: string;
+  skills?: string;
+  portfolioUrl?: string;
+  companyName?: string;
+  isActive?: boolean;
+  isVerified?: boolean;
 }
 
 export interface FreelancerProfile {
@@ -99,7 +152,8 @@ export type ProposalStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN' |
 /** Freelancer Preferences - freelancer-level settings (skills, budget, etc.), NOT project-based */
 export interface FreelancerPreferences {
   id?: number;
-  freelancerId: number;
+  /** Sujet Keycloak (string) renvoyé par le microservice candidature */
+  freelancerId: string;
   skills: string[];
   preferredProjectTypes: string[];
   minBudget: number;
@@ -288,6 +342,27 @@ export interface PopularProject {
   budgetMax: number;
   status: string;
   proposalsCount: number;
+}
+
+// Forum Models (backend-aligned)
+export interface ForumReply {
+  id?: number;
+  author: string;
+  content: string;
+  createdAt?: string;
+}
+
+export interface ForumPost {
+  id?: number;
+  author: string;
+  title: string;
+  content: string;
+  imageUrl?: string | null;
+  audioUrl?: string | null;
+  videoUrl?: string | null;
+  createdAt?: string;
+  reactions?: string;       // JSON string e.g. '{"👍":3,"❤️":1}'
+  replies?: ForumReply[];
 }
 
 export interface ProjectStatsDTO {

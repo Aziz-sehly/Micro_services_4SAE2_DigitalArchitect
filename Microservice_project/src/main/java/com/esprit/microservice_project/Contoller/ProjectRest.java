@@ -19,6 +19,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/project")
@@ -105,6 +106,35 @@ public class ProjectRest {
         }
 
         return serviceproject.updateProject(id, p);
+    }
+
+    /**
+     * Mise à jour du statut seul (microservice proposition via Feign, JWT client relayé).
+     * PUT et PATCH exposés : OpenFeign utilise PUT (PATCH non supporté par HttpURLConnection).
+     */
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('client')")
+    public Project patchProjectStatus(@PathVariable int id,
+                                      @RequestBody Map<String, String> body,
+                                      @AuthenticationPrincipal Jwt jwt) {
+        return applyProjectStatus(id, body, jwt);
+    }
+
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('client')")
+    public Project putProjectStatus(@PathVariable int id,
+                                    @RequestBody Map<String, String> body,
+                                    @AuthenticationPrincipal Jwt jwt) {
+        return applyProjectStatus(id, body, jwt);
+    }
+
+    private Project applyProjectStatus(int id, Map<String, String> body, Jwt jwt) {
+        String raw = body.get("status");
+        if (raw == null || raw.isBlank()) {
+            throw new RuntimeException("status is required");
+        }
+        Status s = Status.valueOf(raw.trim().toUpperCase());
+        return serviceproject.updateProjectStatus(id, s, jwt.getSubject());
     }
 
     // ── DELETE PROJECT (OWNER ONLY) ────────────────────────────

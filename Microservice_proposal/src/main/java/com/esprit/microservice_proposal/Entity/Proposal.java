@@ -22,6 +22,10 @@ public class Proposal {
     @Column(name = "freelancer_id", nullable = false)
     private Integer freelancerId;
 
+    /** Sujet Keycloak (UUID) du freelancer — pour GetMyProposals / withdraw sans appel user-service. */
+    @Column(name = "freelancer_keycloak_id", length = 64)
+    private String freelancerKeycloakId;
+
     private Float proposedPrice;
     private Integer deliveryDays;
 

@@ -113,6 +113,17 @@
   align-items: center;
   gap: 1rem;
 
+  .user-greeting {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .btn {
     padding: 0.6rem 1.5rem;
     font-family: 'DM Sans', sans-serif;

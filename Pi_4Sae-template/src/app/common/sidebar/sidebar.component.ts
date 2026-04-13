@@ -8,6 +8,7 @@ import { CustomizerSettingsService } from '../../customizer-settings/customizer-
 
 @Component({
     selector: 'app-sidebar',
+    standalone: true,
     imports: [NgScrollbarModule, MatExpansionModule, RouterLinkActive, RouterModule, RouterLink, NgClass],
     templateUrl: './sidebar.component.html',
     styleUrl: './sidebar.component.scss'

@@ -10,6 +10,7 @@ import { RouterLink } from '@angular/router';
 import { ProjectProposalService } from '../../services/project-proposal.service';
 import { ProjectService } from '../../services/project.service';
 import { ProjectProposal } from '../../models/models';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-milestone-client',
@@ -49,7 +50,7 @@ export class MilestoneClientComponent implements OnInit {
 
   statusFilter: 'ALL' | MilestoneStatus = 'ALL';
 
-  private readonly clientId = 1;
+  private get clientId(): number { return this.authService.getCurrentUser()?.backendId ?? 0; }
 
   form = this.fb.group({
     contractId: [null as number | null, [Validators.required]],
@@ -63,7 +64,8 @@ export class MilestoneClientComponent implements OnInit {
     private fb: FormBuilder,
     private ms: MilestoneService,
     private proposalService: ProjectProposalService,
-    private projectService: ProjectService
+    private projectService: ProjectService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {

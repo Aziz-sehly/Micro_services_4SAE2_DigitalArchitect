@@ -7,6 +7,7 @@ import { MilestoneService } from '../../services/milestone.service';
 import { ProjectProposalService } from '../../services/project-proposal.service';
 import { ProjectService } from '../../services/project.service';
 import { ProjectProposal } from '../../models/models';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-milestone-freelancer',
@@ -28,12 +29,13 @@ export class MilestoneFreelancerComponent implements OnInit {
 
   statusFilter: 'ALL' | MilestoneStatus = 'ALL';
 
-  private readonly freelancerId = 101;
+  private get freelancerId(): number { return this.authService.getCurrentUser()?.backendId ?? 0; }
 
   constructor(
     private ms: MilestoneService,
     private proposalService: ProjectProposalService,
-    private projectService: ProjectService
+    private projectService: ProjectService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {

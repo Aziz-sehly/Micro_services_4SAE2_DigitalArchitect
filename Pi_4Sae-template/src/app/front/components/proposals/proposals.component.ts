@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { Project, ProjectProposal } from '../../models/models';
 import { ProjectProposalService } from '../../services/project-proposal.service';
 import { ProjectService } from '../../services/project.service';
+import { AuthService } from '../../services/auth.service';
 
 const REFRESH_INTERVAL_MS = 15000;
 
@@ -20,12 +21,12 @@ export class ProposalsComponent implements OnInit, OnDestroy {
   projectMap: Record<number, Project> = {};
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
-  // TODO: remplacer par authService.user.id (client connecté)
-  private readonly clientId = 1;
+  private get clientId(): number { return this.authService.getCurrentUser()?.backendId ?? 0; }
 
   constructor(
     private readonly proposalService: ProjectProposalService,
-    private readonly projectService: ProjectService
+    private readonly projectService: ProjectService,
+    private readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -60,16 +61,34 @@ export class ProposalsComponent implements OnInit, OnDestroy {
   }
 
   accept(id: number): void {
-    this.proposalService.accept(id).subscribe(() => this.load());
+    this.proposalService.accept(id).subscribe({
+      next: () => this.load(),
+      error: (err) => {
+        const msg = err?.error?.error ?? err?.error?.detail ?? err?.message ?? 'Accept failed';
+        alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      },
+    });
   }
 
   reject(id: number): void {
     if (!confirm('Reject this proposal?')) return;
-    this.proposalService.reject(id).subscribe(() => this.load());
+    this.proposalService.reject(id).subscribe({
+      next: () => this.load(),
+      error: (err) => {
+        const msg = err?.error?.error ?? err?.error?.detail ?? err?.message ?? 'Reject failed';
+        alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      },
+    });
   }
 
   cancel(id: number): void {
     if (!confirm('Cancel this proposal?')) return;
-    this.proposalService.cancel(id).subscribe(() => this.load());
+    this.proposalService.cancel(id).subscribe({
+      next: () => this.load(),
+      error: (err) => {
+        const msg = err?.error?.error ?? err?.error?.detail ?? err?.message ?? 'Cancel failed';
+        alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      },
+    });
   }
 }

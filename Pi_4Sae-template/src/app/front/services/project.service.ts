@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 import { Experience, Project, ProjectFilters, ProjectStatsDTO, SearchResult, Status } from '../models/models';
 
 // ── AI Suggest DTOs ───────────────────────────────────────────────────────────
@@ -11,8 +12,8 @@ export interface AISuggestResponse { title: string; skills: string; budgetMin: n
 @Injectable({ providedIn: 'root' })
 export class ProjectService {
 
-  // ── Toutes les URLs passent par l'API Gateway (port 8765) ─────────────────
-  private readonly baseUrl = 'http://localhost:8765/project';
+  // ── API Gateway (URL dans environment.ts) ─────────────────
+  private readonly baseUrl = `${environment.apiGateway}/project`;
 
   private readonly projectsSubject = new BehaviorSubject<Project[]>([]);
   readonly projects$ = this.projectsSubject.asObservable();
@@ -103,7 +104,7 @@ export class ProjectService {
 
   // ── GET BY ID ─────────────────────────────────────────────────────────────
   getById(id: number): Observable<Project | undefined> {
-    return this.http.get<any>(`${this.baseUrl}/GetProject/${id}`).pipe(
+    return this.http.get<any>(`${this.baseUrl}/${id}`).pipe(
       map((dto) => this.dtoToProject(dto)),
       catchError(() => of(undefined))
     );
@@ -119,7 +120,7 @@ export class ProjectService {
   // ── CREATE ────────────────────────────────────────────────────────────────
   create(project: Omit<Project, 'id'>): Observable<Project> {
     const payload = this.projectToPayload(project);
-    return this.http.post<any>(`${this.baseUrl}/Addproject`, payload).pipe(
+    return this.http.post<any>(`${this.baseUrl}/add`, payload).pipe(
       map((dto) => this.dtoToProject(dto)),
       tap((created) => {
         this.loaded = true;
@@ -135,7 +136,7 @@ export class ProjectService {
   // ── UPDATE ────────────────────────────────────────────────────────────────
   update(id: number, patch: Partial<Project>): Observable<Project | undefined> {
     const payload = this.projectToPayload(patch);
-    return this.http.put<any>(`${this.baseUrl}/UpdateProject/${id}`, payload).pipe(
+    return this.http.put<any>(`${this.baseUrl}/${id}`, payload).pipe(
       map((dto) => this.dtoToProject(dto)),
       tap((updated) => {
         const current = this.projectsSubject.value;
@@ -152,7 +153,7 @@ export class ProjectService {
 
   // ── DELETE ────────────────────────────────────────────────────────────────
   delete(id: number): Observable<boolean> {
-    return this.http.delete<void>(`${this.baseUrl}/DeleteProject/${id}`).pipe(
+    return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(
       map(() => true),
       tap(() => {
         const next = this.projectsSubject.value.filter((p) => p.id !== id);
@@ -168,8 +169,8 @@ export class ProjectService {
   }
 
   // ── GET BY CLIENT ─────────────────────────────────────────────────────────
-  getByClient(clientId: number, page = 1, pageSize = 50): Observable<SearchResult<Project>> {
-    return this.http.get<any[]>(`${this.baseUrl}/GetProjectsByClient/${clientId}`).pipe(
+  getByClient(_clientId: number, page = 1, pageSize = 50): Observable<SearchResult<Project>> {
+    return this.http.get<any[]>(`${this.baseUrl}/my-projects`).pipe(
       map((items) => (Array.isArray(items) ? items : []).map((dto) => this.dtoToProject(dto))),
       tap((items) => {
         this.loaded = true;
@@ -187,10 +188,15 @@ export class ProjectService {
   // ── PRIVATE: ensureLoaded ─────────────────────────────────────────────────
   private ensureLoaded(): Observable<Project[]> {
     if (this.loaded) return of(this.projectsSubject.value);
-    return this.http.get<any[]>(`${this.baseUrl}/GetAllProjects`).pipe(
+    return this.http.get<any[]>(`${this.baseUrl}/all`).pipe(
       map((items) => (Array.isArray(items) ? items : []).map((dto) => this.dtoToProject(dto))),
       tap((items) => { this.loaded = true; this.projectsSubject.next(items); }),
-      catchError(() => { this.loaded = true; this.projectsSubject.next([]); return of([]); })
+      catchError((err) => {
+        console.warn('[ProjectService] GET /project/all échoué (401 sans token, CORS, ou gateway arrêtée) :', err?.message ?? err);
+        this.loaded = true;
+        this.projectsSubject.next([]);
+        return of([]);
+      })
     );
   }
 

@@ -48,7 +48,13 @@ import { AuthService } from '../../services/auth.service';
             <input type="password" [(ngModel)]="password" name="password" required>
           </div>
 
-          <button type="submit" class="submit-btn">Create Account</button>
+          <div *ngIf="errorMessage" style="color:#ef4444;background:#fef2f2;padding:12px;border-radius:8px;margin-bottom:1rem;text-align:left;font-size:0.9rem">
+            {{ errorMessage }}
+          </div>
+
+          <button type="submit" class="submit-btn" [disabled]="loading">
+            {{ loading ? 'Creating account...' : 'Create Account' }}
+          </button>
           
           <p class="login-link">
             Already have an account? <a routerLink="/front/login">Log in</a>
@@ -170,6 +176,8 @@ export class RegisterComponent {
   email = '';
   password = '';
   userType: 'freelancer' | 'client' = 'freelancer';
+  loading = false;
+  errorMessage: string | null = null;
 
   constructor(
     private authService: AuthService,
@@ -177,13 +185,24 @@ export class RegisterComponent {
   ) {}
 
   onSubmit(): void {
+    this.errorMessage = null;
+    this.loading = true;
     this.authService.register({
       firstName: this.firstName,
       lastName: this.lastName,
       email: this.email,
+      password: this.password,
       userType: this.userType
-    }).subscribe(() => {
-      this.router.navigate(['/jobs']);
+    }).subscribe({
+      next: () => {
+        this.loading = false;
+        this.router.navigate(['/front/projects']);
+      },
+      error: (err) => {
+        this.loading = false;
+        const msg = err?.error?.message ?? err?.message ?? 'Registration failed';
+        this.errorMessage = typeof msg === 'string' ? msg : JSON.stringify(msg);
+      }
     });
   }
 }

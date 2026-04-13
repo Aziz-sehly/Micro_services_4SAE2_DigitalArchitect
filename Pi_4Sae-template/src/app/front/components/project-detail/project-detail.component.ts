@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { Project, ProjectProposal } from '../../models/models';
 import { ProjectService } from '../../services/project.service';
 import { ProjectProposalService } from '../../services/project-proposal.service';
+import { AuthService } from '../../services/auth.service';
 
 const PROPOSALS_REFRESH_INTERVAL_MS = 15000;
 
@@ -33,8 +34,7 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
 
   sort: 'priceDesc' | 'durationDesc' | '' = '';
 
-  // TODO: remplacer par authService.user.id
-  private readonly currentClientId = 1;
+  private get currentClientId(): number { return this.authService.getCurrentUser()?.backendId ?? 0; }
   isClient = false;
   /** Vue freelancer forcée via ?as=freelancer (ex: depuis la liste Projets) */
   viewAsFreelancer = false;
@@ -43,7 +43,8 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly projectService: ProjectService,
-    private readonly proposalService: ProjectProposalService
+    private readonly proposalService: ProjectProposalService,
+    private readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -110,12 +111,36 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
   // Client actions
   acceptProposal(id: number, ev: MouseEvent): void {
     ev.stopPropagation();
-    this.proposalService.accept(id).subscribe(() => this.loadProposals(false));
+    this.proposalService.accept(id).subscribe({
+      next: () => this.loadProposals(false),
+      error: (err) => {
+        alert(this.formatProposalActionError(err, 'Accept failed'));
+      },
+    });
   }
 
   rejectProposal(id: number, ev: MouseEvent): void {
     ev.stopPropagation();
-    this.proposalService.reject(id).subscribe(() => this.loadProposals(false));
+    this.proposalService.reject(id).subscribe({
+      next: () => this.loadProposals(false),
+      error: (err) => {
+        alert(this.formatProposalActionError(err, 'Reject failed'));
+      },
+    });
+  }
+
+  private formatProposalActionError(err: any, fallback: string): string {
+    const e = err?.error;
+    if (typeof e === 'string') return e;
+    if (e && typeof e === 'object') {
+      const detail = e.detail;
+      const short = e.error;
+      if (detail && short && short !== 'Upstream service error')
+        return `${short} — ${detail}`;
+      if (detail) return String(detail);
+      if (short) return String(short);
+    }
+    return String(err?.message ?? fallback);
   }
 
   hideProposal(id: number, ev: MouseEvent): void {
@@ -143,7 +168,7 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
     this.proposalService
       .create({
         projectId: this.project.id,
-        freelancerId: 101, // TODO: remplacer par l'utilisateur connecté
+        freelancerId: this.authService.getCurrentUser()?.backendId ?? 0,
         coverLetter: this.coverLetter.trim(),
         proposedBudget: this.proposedBudget,
         deliveryDays: this.deliveryDays || 0,

@@ -8,6 +8,7 @@ import { NgScrollbarModule } from 'ngx-scrollbar';
 
 @Component({
     selector: 'app-customizer-settings',
+    standalone: true,
     imports: [NgClass, MatDividerModule, MatIconModule, MatButtonModule, NgScrollbarModule],
     templateUrl: './customizer-settings.component.html',
     styleUrl: './customizer-settings.component.scss'

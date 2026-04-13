@@ -1,6 +1,18 @@
 {
-  "/project": {"target": "http://localhost:8765", "secure": false, "changeOrigin": true, "logLevel": "debug"},
-  "/proposal": {"target": "http://localhost:8765", "secure": false, "changeOrigin": true, "logLevel": "debug"},
-  "/milestone": {"target": "http://localhost:8765", "secure": false, "changeOrigin": true, "logLevel": "debug"},
-  "/payment": {"target": "http://localhost:8765", "secure": false, "changeOrigin": true, "logLevel": "debug"}
+  "/keycloak-proxy": {
+    "target": "http://localhost:8180",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {"^/keycloak-proxy": ""},
+    "logLevel": "warn"
+  },
+  "/project": {"target": "http://localhost:8775", "secure": false, "changeOrigin": true, "logLevel": "debug"},
+  "/proposal": {"target": "http://localhost:8775", "secure": false, "changeOrigin": true, "logLevel": "debug"},
+  "/milestone": {"target": "http://localhost:8775", "secure": false, "changeOrigin": true, "logLevel": "debug"},
+  "/payment": {"target": "http://localhost:8775", "secure": false, "changeOrigin": true, "logLevel": "debug"},
+  "/candidature": {"target": "http://localhost:8775", "secure": false, "changeOrigin": true, "logLevel": "debug"},
+  "/application": {"target": "http://localhost:8775", "secure": false, "changeOrigin": true, "logLevel": "debug"},
+  "/api/posts": {"target": "http://localhost:8775", "secure": false, "changeOrigin": true, "logLevel": "debug"},
+  "/api/reviews": {"target": "http://localhost:8775", "secure": false, "changeOrigin": true, "logLevel": "debug"},
+  "/user": {"target": "http://localhost:8775", "secure": false, "changeOrigin": true, "logLevel": "debug"}
 }

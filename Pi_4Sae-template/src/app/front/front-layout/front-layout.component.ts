@@ -1,11 +1,23 @@
 import { Component } from '@angular/core';
-import { RouterModule, RouterLink, RouterLinkActive } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { Router, RouterModule, RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-front-layout',
   templateUrl: './front-layout.component.html',
   styleUrls: ['./front-layout.component.scss'],
   standalone: true,
-  imports: [RouterModule, RouterLink, RouterLinkActive]  // <-- RouterLink et RouterLinkActive pour les liens
+  imports: [CommonModule, RouterModule, RouterLink, RouterLinkActive],
 })
-export class FrontLayoutComponent {}
+export class FrontLayoutComponent {
+  constructor(
+    public readonly authService: AuthService,
+    private readonly router: Router
+  ) {}
+
+  logout(): void {
+    this.authService.logout();
+    void this.router.navigate(['/front/login']);
+  }
+}

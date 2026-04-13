@@ -7,4 +7,5 @@ import java.util.List;
 public interface ProposalRepository extends JpaRepository<Proposal, Integer> {
     List<Proposal> findByProjectId(int projectId);
     List<Proposal> findByFreelancerId(int freelancerId);
+    List<Proposal> findByFreelancerKeycloakId(String freelancerKeycloakId);
 }

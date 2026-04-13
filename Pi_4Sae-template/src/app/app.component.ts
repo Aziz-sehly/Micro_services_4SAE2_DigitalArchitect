@@ -12,6 +12,7 @@ import { ToggleService } from './common/sidebar/toggle.service';
 
 @Component({
     selector: 'app-root',
+    standalone: true,
     imports: [RouterOutlet, CommonModule, SidebarComponent, HeaderComponent, FooterComponent, CustomizerSettingsComponent, NgClass],
     templateUrl: './app.component.html',
     styleUrl: './app.component.scss'

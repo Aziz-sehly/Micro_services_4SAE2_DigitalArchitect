@@ -2,20 +2,34 @@
   <header class="main-header">
     <div class="header-content">
       <a routerLink="/front" class="logo">Prolance</a>
-      
+
       <nav class="main-nav">
         <a routerLink="/front" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a>
-        <a routerLink="/front/profile-client" routerLinkActive="active">Client Profile</a>
-        <a routerLink="/front/profile-freelancer" routerLinkActive="active">Freelancer Profile</a>
-        <a routerLink="/front/milestones-client" routerLinkActive="active">Milestones (Client)</a>
-        <a routerLink="/front/milestones-freelancer" routerLinkActive="active">Milestones (Freelancer)</a>
+        <a routerLink="/front/projects" routerLinkActive="active">Projets</a>
+
+        <ng-container *ngIf="authService.currentUser$ | async as user">
+          <a routerLink="/front/account" routerLinkActive="active">Mon compte</a>
+          <a *ngIf="user.userType === 'client'" routerLink="/front/profile-client" routerLinkActive="active">Espace client</a>
+          <a *ngIf="user.userType === 'client'" routerLink="/front/milestones-client" routerLinkActive="active">Jalons (client)</a>
+          <a *ngIf="user.userType === 'client'" routerLink="/front/my-jobs" routerLinkActive="active">Mes missions</a>
+          <a *ngIf="user.userType === 'freelancer'" routerLink="/front/profile-freelancer" routerLinkActive="active">Espace freelancer</a>
+          <a *ngIf="user.userType === 'freelancer'" routerLink="/front/milestones-freelancer" routerLinkActive="active">Jalons (freelancer)</a>
+          <a *ngIf="user.userType === 'freelancer'" routerLink="/front/my-proposals" routerLinkActive="active">Mes propositions</a>
+        </ng-container>
+
         <a routerLink="/front/about" routerLinkActive="active">About</a>
         <a routerLink="/front/reviews" routerLinkActive="active">Reviews</a>
       </nav>
 
       <div class="user-section">
-        <a routerLink="/front/login" class="btn btn-outline">Login</a>
-        <a routerLink="/front/register" class="btn btn-primary">Sign Up</a>
+        <ng-container *ngIf="authService.currentUser$ | async as user; else loggedOut">
+          <span class="user-greeting">{{ user.firstName || user.email }}</span>
+          <button type="button" class="btn btn-outline" (click)="logout()">Déconnexion</button>
+        </ng-container>
+        <ng-template #loggedOut>
+          <a routerLink="/front/login" class="btn btn-outline">Login</a>
+          <a routerLink="/front/register" class="btn btn-primary">Sign Up</a>
+        </ng-template>
         <a routerLink="/back" class="btn btn-dashboard">Dashboard</a>
       </div>
     </div>

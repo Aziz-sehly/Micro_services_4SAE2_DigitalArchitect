@@ -37,12 +37,12 @@ export class AdminCandidaturesComponent implements OnInit {
     });
   }
 
-  delete(freelancerId: number): void {
-    if (!confirm('Supprimer les préférences du freelancer #' + freelancerId + ' ?')) return;
-    this.candidatureService.delete(freelancerId).subscribe({
+  delete(freelancerKeycloakId: string): void {
+    if (!confirm('Supprimer les préférences de ce freelancer (Keycloak) ?')) return;
+    this.candidatureService.deleteByAdminSubject(freelancerKeycloakId).subscribe({
       next: (ok) => {
         if (ok) {
-          this.preferences = this.preferences.filter((p) => p.freelancerId !== freelancerId);
+          this.preferences = this.preferences.filter((p) => p.freelancerId !== freelancerKeycloakId);
           this.showAlert('Préférences supprimées avec succès', 'success');
         } else {
           this.showAlert('La suppression a échoué', 'error');

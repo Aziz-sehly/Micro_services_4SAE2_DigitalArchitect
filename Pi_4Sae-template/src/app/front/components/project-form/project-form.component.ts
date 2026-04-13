@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Experience, Project, Status } from '../../models/models';
 import { ProjectService } from '../../services/project.service';
+import { AuthService } from '../../services/auth.service';
 
 type Mode = 'create' | 'edit';
 
@@ -21,7 +22,7 @@ export class ProjectFormComponent implements OnInit {
 
   // Form fields (alignés avec l’entité Java)
   id?: number;
-  client_id = 1; // TODO: remplacer par le client connecté
+  client_id = 0;
   title = '';
   description = '';
   category = '';
@@ -71,8 +72,11 @@ export class ProjectFormComponent implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-    private readonly projectService: ProjectService
-  ) {}
+    private readonly projectService: ProjectService,
+    private readonly authService: AuthService
+  ) {
+    this.client_id = this.authService.getCurrentUser()?.backendId ?? 0;
+  }
 
   ngOnInit(): void {
     const maybeId = this.route.snapshot.paramMap.get('id');

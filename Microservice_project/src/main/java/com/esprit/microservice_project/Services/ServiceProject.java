@@ -164,4 +164,15 @@ public class ServiceProject implements IServiceProject {
     public Project getProjectById(int id) {
         return projectRepository.findById(id).orElse(null);
     }
+
+    @Override
+    public Project updateProjectStatus(int id, Status newStatus, String clientKeycloakSub) {
+        Project existing = projectRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Project not found: " + id));
+        if (existing.getClientId() == null || !existing.getClientId().equals(clientKeycloakSub)) {
+            throw new RuntimeException("Unauthorized: Not your project");
+        }
+        existing.setStatus(newStatus);
+        return projectRepository.save(existing);
+    }
 }

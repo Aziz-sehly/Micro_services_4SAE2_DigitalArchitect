@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -6,7 +6,8 @@ import { Experience, FreelancerPreferences, Project, ProjectProposal, ProjectSta
 import { ProjectService } from '../../services/project.service';
 import { ProjectProposalService } from '../../services/project-proposal.service';
 import { CandidatureService } from '../../services/candidature.service';
-import { forkJoin } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
+import { forkJoin, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-freelancer-profile',
@@ -15,7 +16,10 @@ import { forkJoin } from 'rxjs';
   templateUrl: './freelancer-profile.component.html',
   styleUrls: ['./freelancer-profile.component.scss']
 })
-export class FreelancerProfileComponent implements OnInit {
+export class FreelancerProfileComponent implements OnInit, OnDestroy {
+  private userSub?: Subscription;
+  private lastLoadedFreelancerId: number | null = null;
+
   loading = true;
   proposalsLoading = true;
   proposals: ProjectProposal[] = [];
@@ -46,7 +50,7 @@ export class FreelancerProfileComponent implements OnInit {
   propDeliveryDays = 0;
   submitting = false;
 
-  private readonly freelancerId = 101;
+  private get freelancerId(): number { return this.authService.getCurrentUser()?.backendId ?? 0; }
 
   coverPhotoUrl = '';
   profilePhotoUrl = '';
@@ -79,15 +83,36 @@ export class FreelancerProfileComponent implements OnInit {
   constructor(
     private readonly proposalService: ProjectProposalService,
     private readonly projectService: ProjectService,
-    private readonly candidatureService: CandidatureService
+    private readonly candidatureService: CandidatureService,
+    public readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.projectService.getCategories().subscribe((c) => (this.categories = c));
     this.projectService.getStats().subscribe((s) => (this.stats = s));
-    this.loadProposals();
     this.loadProjects();
-    this.loadPrefs();
+    this.userSub = this.authService.currentUser$.subscribe((u) => {
+      if (!u) {
+        this.proposalsLoading = false;
+        this.prefsLoading = false;
+        return;
+      }
+      const id = u.backendId ?? 0;
+      if (u.profileIncomplete && id === 0) {
+        this.proposalsLoading = false;
+        this.prefsLoading = false;
+        return;
+      }
+      if (id > 0 && id !== this.lastLoadedFreelancerId) {
+        this.lastLoadedFreelancerId = id;
+        this.loadProposals();
+        this.loadPrefs();
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.userSub?.unsubscribe();
   }
 
   loadPrefs(): void {

@@ -3,6 +3,7 @@ import { CustomizerSettingsService } from '../../customizer-settings/customizer-
 
 @Component({
     selector: 'app-footer',
+    standalone: true,
     imports: [],
     templateUrl: './footer.component.html',
     styleUrl: './footer.component.scss'

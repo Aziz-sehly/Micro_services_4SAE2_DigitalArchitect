@@ -81,4 +81,26 @@ public class FreelancerPreferencesRest {
                 .map(p -> ResponseEntity.ok(FreelancerPreferencesMapper.toResponse(p)))
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    /**
+     * Client / freelancer : lecture des préférences d’un autre freelancer (ex. matching compétences)
+     * à partir du sujet Keycloak, après résolution côté front (.NET user → keycloakId).
+     */
+    /**
+     * Pas de préférences en base → 204 (évite un 404 confondu avec « route introuvable » dans le navigateur).
+     */
+    @GetMapping("/by-subject/{subject}")
+    @PreAuthorize("hasAnyRole('client', 'freelancer')")
+    public ResponseEntity<FreelancerPreferencesResponse> getBySubjectForPeers(@PathVariable String subject) {
+        return preferencesService.getByFreelancerId(subject)
+                .map(p -> ResponseEntity.ok(FreelancerPreferencesMapper.toResponse(p)))
+                .orElse(ResponseEntity.noContent().build());
+    }
+
+    @DeleteMapping("/by-subject/{subject}")
+    @PreAuthorize("hasRole('admin')")
+    public ResponseEntity<Void> deleteBySubject(@PathVariable String subject) {
+        preferencesService.delete(subject);
+        return ResponseEntity.noContent().build();
+    }
 }

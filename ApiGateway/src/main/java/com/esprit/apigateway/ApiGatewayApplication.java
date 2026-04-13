@@ -18,52 +18,61 @@ public class ApiGatewayApplication {
     @Bean
     public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
         return builder.routes()
+                .route("forum-service", r -> r
+                        .path("/api/posts/**")
+                        .uri("http://forum-service:8082"))
                 .route("reviews-service", r -> r
                         .path("/api/reviews/**")
-                        .uri("http://localhost:8081"
-                        ))
+                        .uri("http://forum-service:8082"))
                 .route("microservice_project", r -> r
-                        .path("/project/**")  // ← Change le path pour éviter les conflits
+                        .path("/project/**")
                         .filters(f -> f.rewritePath(
                                 "/project/(?<segment>.*)",
                                 "/freelance/project/${segment}"
                         ))
-                        .uri("http://localhost:8091"))
+                        .uri("http://project-service:8091"))
                 .route("microservice-proposal", r -> r
                         .path("/proposal/**")
                         .filters(f -> f.rewritePath(
                                 "/proposal/(?<segment>.*)",
                                 "/freelance1/proposal/${segment}"
                         ))
-                        .uri("http://localhost:8092"))
+                        .uri("http://proposal-service:8092"))
                 .route("microservice_payment", r -> r
                         .path("/payment/**")
                         .filters(f -> f.rewritePath(
                                 "/payment/(?<segment>.*)",
                                 "/payment/${segment}"
                         ))
-                        .uri("http://localhost:8082"))
+                        .uri("http://payment-service:8096"))
                 .route("microservice_milestone", r -> r
                         .path("/milestone/**")
                         .filters(f -> f.rewritePath(
                                 "/milestone/(?<segment>.*)",
                                 "/milestone/${segment}"
                         ))
-                        .uri("http://localhost:8094"))
+                        .uri("http://proposal-service:8092"))
                 .route("microservice_candidature", r -> r
                         .path("/candidature/**")
                         .filters(f -> f.rewritePath(
                                 "/candidature/(?<segment>.*)",
                                 "/h2/candidature/${segment}"
                         ))
-                        .uri("http://localhost:8093"))
+                        .uri("http://candidature-service:8093"))
                 .route("microservice_application", r -> r
                         .path("/application/**")
                         .filters(f -> f.rewritePath(
                                 "/application/(?<segment>.*)",
                                 "/h2/application/${segment}"
                         ))
-                        .uri("http://localhost:8093"))
+                        .uri("http://candidature-service:8093"))
+                .route("microservice_user", r -> r
+                        .path("/user", "/user/**")
+                        .filters(f -> f.rewritePath(
+                                "/user(?:/(?<segment>.*))?",
+                                "/api/Users/${segment}"
+                        ))
+                        .uri("http://user-service:5088"))
 
                 .build();
     }

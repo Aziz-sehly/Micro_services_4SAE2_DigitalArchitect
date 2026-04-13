@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Project } from '../../models/models';
 import { ProjectService } from '../../services/project.service';
 import { ProjectProposalService } from '../../services/project-proposal.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-my-jobs',
@@ -16,13 +17,13 @@ export class MyJobsComponent implements OnInit {
   loading = true;
   projects: Project[] = [];
 
-  // TODO: remplacer par authService.user.id (client connecté)
-  private readonly clientId = 1;
+  private get clientId(): number { return this.authService.getCurrentUser()?.backendId ?? 0; }
 
   constructor(
     private readonly projectService: ProjectService,
     private readonly proposalService: ProjectProposalService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {

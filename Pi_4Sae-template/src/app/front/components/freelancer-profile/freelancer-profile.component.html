@@ -17,6 +17,16 @@
       </ol>
     </div>
 
+    <div
+      *ngIf="authService.getCurrentUser()?.profileIncomplete"
+      class="profile-alert"
+      style="margin:0 0 1.25rem;padding:1rem 1.25rem;background:#fff7ed;border:1px solid #fdba74;border-radius:12px;color:#9a3412;font-size:0.95rem;line-height:1.5"
+    >
+      <strong>Profil utilisateur incomplet.</strong> Ton compte Keycloak n’a pas encore d’entrée dans le service utilisateurs (.NET / PostgreSQL).
+      Inscris-toi via <a routerLink="/front/register" style="color:#c2410c;font-weight:600">Inscription</a> avec le même email,
+      ou crée l’utilisateur côté admin pour lier les données (propositions, préférences).
+    </div>
+
     <div class="action-buttons-bar">
       <button type="button" class="btn-action" (click)="scrollTo('section-preferences')">Preferences</button>
       <button type="button" class="btn-action" (click)="scrollTo('section-propositions')">View proposals</button>

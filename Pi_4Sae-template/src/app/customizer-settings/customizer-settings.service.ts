@@ -7,37 +7,52 @@ import { BehaviorSubject } from 'rxjs';
 export class CustomizerSettingsService {
 
     constructor() {
-        if (typeof window !== 'undefined' && window.localStorage) {
+        if (typeof window === 'undefined' || !window.localStorage) {
+            return;
+        }
+        try {
             // Dark Mode
             this.isDarkTheme = JSON.parse(localStorage.getItem('isDarkTheme') || 'false');
             this.updateDarkBodyClass();
-    
+
             // Sidebar Dark Mode
             this.isSidebarDarkTheme = JSON.parse(localStorage.getItem('isSidebarDarkTheme') || 'false');
-    
+
             // Right Sidebar
             this.isRightSidebarTheme = JSON.parse(localStorage.getItem('isRightSidebarTheme') || 'false');
-    
+
             // Hide Sidebar
             this.isHideSidebarTheme = JSON.parse(localStorage.getItem('isHideSidebarTheme') || 'false');
-    
+
             // Header Dark
             this.isHeaderDarkTheme = JSON.parse(localStorage.getItem('isHeaderDarkTheme') || 'false');
-    
+
             // Card Border
             this.isCardBorderTheme = JSON.parse(localStorage.getItem('isCardBorderTheme') || 'false');
-    
+
             // Card Border Radius
             this.isCardBorderRadiusTheme = JSON.parse(localStorage.getItem('isCardBorderRadiusTheme') || 'false');
-    
+
             // RTL Mode
             this.isRTLEnabledTheme = JSON.parse(localStorage.getItem('isRTLEnabledTheme') || 'false');
+            this.updateRTLBodyClass();
+        } catch {
+            // localStorage corrompu ou JSON invalide : ne pas bloquer le bootstrap (écran blanc).
+            this.isDarkTheme = false;
+            this.isSidebarDarkTheme = false;
+            this.isRightSidebarTheme = false;
+            this.isHideSidebarTheme = false;
+            this.isHeaderDarkTheme = false;
+            this.isCardBorderTheme = false;
+            this.isCardBorderRadiusTheme = false;
+            this.isRTLEnabledTheme = false;
+            this.updateDarkBodyClass();
             this.updateRTLBodyClass();
         }
     }
 
-    // Dark Mode
-    private isDarkTheme!: boolean;
+    // Dark Mode (valeurs par défaut si le constructeur ne peut pas lire localStorage)
+    private isDarkTheme = false;
     toggleTheme() {
         this.isDarkTheme = !this.isDarkTheme;
         localStorage.setItem('isDarkTheme', JSON.stringify(this.isDarkTheme));
@@ -55,7 +70,7 @@ export class CustomizerSettingsService {
     }
 
     // Sidebar Dark
-    private isSidebarDarkTheme!: boolean;
+    private isSidebarDarkTheme = false;
     toggleSidebarTheme() {
         this.isSidebarDarkTheme = !this.isSidebarDarkTheme;
         localStorage.setItem('isSidebarDarkTheme', JSON.stringify(this.isSidebarDarkTheme));
@@ -65,7 +80,7 @@ export class CustomizerSettingsService {
     }
 
     // Right Sidebar
-    private isRightSidebarTheme!: boolean;
+    private isRightSidebarTheme = false;
     toggleRightSidebarTheme() {
         this.isRightSidebarTheme = !this.isRightSidebarTheme;
         localStorage.setItem('isRightSidebarTheme', JSON.stringify(this.isRightSidebarTheme));
@@ -75,7 +90,7 @@ export class CustomizerSettingsService {
     }
 
     // Hide Sidebar
-    private isHideSidebarTheme!: boolean;
+    private isHideSidebarTheme = false;
     toggleHideSidebarTheme() {
         this.isHideSidebarTheme = !this.isHideSidebarTheme;
         localStorage.setItem('isHideSidebarTheme', JSON.stringify(this.isHideSidebarTheme));
@@ -85,7 +100,7 @@ export class CustomizerSettingsService {
     }
 
     // Header Dark Mode
-    private isHeaderDarkTheme!: boolean;
+    private isHeaderDarkTheme = false;
     toggleHeaderTheme() {
         this.isHeaderDarkTheme = !this.isHeaderDarkTheme;
         localStorage.setItem('isHeaderDarkTheme', JSON.stringify(this.isHeaderDarkTheme));
@@ -95,7 +110,7 @@ export class CustomizerSettingsService {
     }
 
     // Card Border
-    private isCardBorderTheme!: boolean;
+    private isCardBorderTheme = false;
     toggleCardBorderTheme() {
         this.isCardBorderTheme = !this.isCardBorderTheme;
         localStorage.setItem('isCardBorderTheme', JSON.stringify(this.isCardBorderTheme));
@@ -105,7 +120,7 @@ export class CustomizerSettingsService {
     }
 
     // Card Border Radius
-    private isCardBorderRadiusTheme!: boolean;
+    private isCardBorderRadiusTheme = false;
     toggleCardBorderRadiusTheme() {
         this.isCardBorderRadiusTheme = !this.isCardBorderRadiusTheme;
         localStorage.setItem('isCardBorderRadiusTheme', JSON.stringify(this.isCardBorderRadiusTheme));
@@ -115,7 +130,7 @@ export class CustomizerSettingsService {
     }
 
     // RTL Mode
-    private isRTLEnabledTheme!: boolean;
+    private isRTLEnabledTheme = false;
     toggleRTLEnabledTheme() {
         this.isRTLEnabledTheme = !this.isRTLEnabledTheme;
         localStorage.setItem('isRTLEnabledTheme', JSON.stringify(this.isRTLEnabledTheme));

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { FreelancerPreferences } from '../../models/models';
 import { CandidatureService } from '../../services/candidature.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-my-candidatures',
@@ -31,8 +32,7 @@ export class MyCandidaturesComponent implements OnInit {
   openToOtherProjectTypes = false;
   notes = '';
 
-  // TODO: replace with authService.user.id
-  private readonly freelancerId = 101;
+  private get freelancerId(): number { return this.authService.getCurrentUser()?.backendId ?? 0; }
 
   readonly PROJECT_TYPE_OPTIONS = [
     'Web Development', 'Mobile Development', 'Backend Development', 'Frontend Development',
@@ -41,7 +41,10 @@ export class MyCandidaturesComponent implements OnInit {
     'React', 'Angular', 'Node.js', 'Machine Learning', 'Cybersecurity'
   ];
 
-  constructor(private readonly candidatureService: CandidatureService) {}
+  constructor(
+    private readonly candidatureService: CandidatureService,
+    private readonly authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     this.load();

@@ -7,16 +7,15 @@ import {
   ProjectProposal,
   ProposalApi,
   ProposalStatus,
-  Status
 } from '../models/models';
 import { ProjectService } from './project.service';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ProjectProposalService {
 
-  // ── Toutes les URLs passent par l'API Gateway (port 8765) ─────────────────
-  private readonly baseUrl        = 'http://localhost:8765/proposal';
-  private readonly projectBaseUrl = 'http://localhost:8765/project';
+  private readonly baseUrl        = `${environment.apiGateway}/proposal`;
+  private readonly projectBaseUrl = `${environment.apiGateway}/project`;
 
   constructor(
     private readonly http: HttpClient,
@@ -31,7 +30,7 @@ export class ProjectProposalService {
     coverLetter:    string;
   }): Observable<string> {
     return this.http.post(
-      `${this.projectBaseUrl}/notify/new-proposal`,  // localhost:8765/project/notify/new-proposal
+      `${this.projectBaseUrl}/notify/new-proposal`,
       data,
       { responseType: 'text' }
     ).pipe(
@@ -100,8 +99,12 @@ export class ProjectProposalService {
     );
   }
 
-  getByFreelancer(freelancerId: number): Observable<ProjectProposal[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/GetProposalsByFreelancer/${freelancerId}`).pipe(
+  /**
+   * Liste des propositions du freelancer connecté (JWT), sans exposer l’ID numérique aux autres comptes.
+   * Le paramètre est conservé pour compatibilité avec les appelants existants.
+   */
+  getByFreelancer(_freelancerId: number): Observable<ProjectProposal[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/GetMyProposals`).pipe(
       map((list) => (Array.isArray(list) ? list : []).map((dto) => this.dtoToProposal(dto))),
       catchError(() => of([]))
     );
@@ -169,27 +172,38 @@ export class ProjectProposalService {
   }
 
   accept(proposalId: number): Observable<ProjectProposal | undefined> {
-    return this.update(proposalId, { status: 'ACCEPTED' }).pipe(
-      switchMap((proposal) => {
-        if (!proposal) return of(undefined);
-        return this.projectService.update(proposal.projectId, { status: Status.ARCHIVED }).pipe(
-          map(() => proposal),
-          catchError(() => of(proposal))
-        );
+    return this.http.put<any>(`${this.baseUrl}/AcceptProposal/${proposalId}`, {}).pipe(
+      map((dto) => this.dtoToProposal(dto)),
+      catchError((err) => {
+        console.error('AcceptProposal error:', err);
+        throw err;
       })
     );
   }
 
   reject(proposalId: number): Observable<ProjectProposal | undefined> {
-    return this.update(proposalId, { status: 'REJECTED' });
+    return this.http.put<any>(`${this.baseUrl}/RejectProposal/${proposalId}`, {}).pipe(
+      map((dto) => this.dtoToProposal(dto)),
+      catchError((err) => {
+        console.error('RejectProposal error:', err);
+        throw err;
+      })
+    );
   }
 
+  /** Côté client : annuler une proposition = la rejeter (endpoint client, pas UpdateProposal freelancer). */
   cancel(proposalId: number): Observable<ProjectProposal | undefined> {
-    return this.update(proposalId, { status: 'REJECTED' });
+    return this.reject(proposalId);
   }
 
   withdraw(proposalId: number): Observable<ProjectProposal | undefined> {
-    return this.update(proposalId, { status: 'WITHDRAWN' });
+    return this.http.put<any>(`${this.baseUrl}/WithdrawProposal/${proposalId}`, {}).pipe(
+      map((dto) => this.dtoToProposal(dto)),
+      catchError((err) => {
+        console.error('WithdrawProposal error:', err);
+        throw err;
+      })
+    );
   }
 
   hide(proposalId: number): Observable<ProjectProposal | undefined> {

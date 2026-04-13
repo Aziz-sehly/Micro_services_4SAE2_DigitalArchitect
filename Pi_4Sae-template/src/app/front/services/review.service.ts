@@ -2,10 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Review } from '../components/reviews/review.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ReviewService {
-  private api = 'http://localhost:8081/api/reviews';
+  private api = `${environment.apiGateway}/api/reviews`;
 
   constructor(private http: HttpClient) {}
 

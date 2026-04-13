@@ -18,97 +18,94 @@ import java.util.List;
 public class ProposalRest {
 
     @Autowired
-    IServiceProposal serviceProposal;
+    private IServiceProposal serviceProposal;
 
-    // FREELANCER: Submit proposal
     @PostMapping("/AddProposal")
     @PreAuthorize("hasRole('freelancer')")
-    public Proposal AddProposal(@RequestBody Proposal p, @AuthenticationPrincipal Jwt jwt) {
-        // Get current freelancer ID from token
-        String freelancerId = jwt.getSubject();
-        // Optionally set it: p.setFreelancerId(freelancerId);
-        return serviceProposal.addProposal(p);
+    public ResponseEntity<Proposal> AddProposal(@RequestBody Proposal p, @AuthenticationPrincipal Jwt jwt) {
+        p.setFreelancerKeycloakId(jwt.getSubject());
+        return ResponseEntity.ok(serviceProposal.addProposal(p));
     }
 
-    // BOTH: View all proposals (admin/moderation)
     @GetMapping("/GetAllProposals")
     @PreAuthorize("hasAnyRole('client', 'freelancer')")
     public List<Proposal> GetAllProposals() {
         return serviceProposal.getProposals();
     }
 
-    // BOTH: View single proposal
     @GetMapping("/GetProposal/{id}")
     @PreAuthorize("hasAnyRole('client', 'freelancer')")
-    public Proposal GetProposal(@PathVariable int id) {
-        return serviceProposal.getProposal(id);
+    public ResponseEntity<Proposal> GetProposal(@PathVariable int id) {
+        return ResponseEntity.ok(serviceProposal.getProposal(id));
     }
 
-    // FREELANCER: Update own proposal
     @PutMapping("/UpdateProposal/{id}")
     @PreAuthorize("hasRole('freelancer')")
-    public Proposal UpdateProposal(@PathVariable int id, @RequestBody Proposal p, @AuthenticationPrincipal Jwt jwt) {
-        // Verify ownership in service layer
-        return serviceProposal.updateProposal(id, p);
+    public ResponseEntity<Proposal> UpdateProposal(@PathVariable int id,
+                                                   @RequestBody Proposal p,
+                                                   @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(serviceProposal.updateProposal(id, p));
     }
 
-    // FREELANCER: Delete own proposal
     @DeleteMapping("/DeleteProposal/{id}")
     @PreAuthorize("hasRole('freelancer')")
-    public void DeleteProposal(@PathVariable int id, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Void> DeleteProposal(@PathVariable int id, @AuthenticationPrincipal Jwt jwt) {
         serviceProposal.deleteProposal(id);
+        return ResponseEntity.noContent().build();
     }
 
-    // CLIENT: View proposals for their project
     @GetMapping("/GetProposalsByProject/{projectId}")
     @PreAuthorize("hasRole('client')")
     public List<Proposal> GetProposalsByProject(@PathVariable int projectId, @AuthenticationPrincipal Jwt jwt) {
-        // Verify project ownership in service layer using jwt.getSubject()
         return serviceProposal.getProposalsByProjectId(projectId);
     }
 
-    // FREELANCER: View their own proposals
     @GetMapping("/GetProposalsByFreelancer/{freelancerId}")
     @PreAuthorize("hasRole('freelancer')")
-    public List<Proposal> GetProposalsByFreelancer(@PathVariable int freelancerId, @AuthenticationPrincipal Jwt jwt) {
-        // Verify the freelancerId matches jwt.getSubject()
-        return serviceProposal.getProposalsByFreelancerId(freelancerId);
+    public List<Proposal> GetProposalsByFreelancer(@PathVariable int freelancerId,
+                                                   @AuthenticationPrincipal Jwt jwt) {
+        return serviceProposal.getProposalsByFreelancerIdVerified(freelancerId, jwt.getSubject());
     }
 
-    // BOTH: Feign — get Project (view only)
+    @GetMapping("/GetMyProposals")
+    @PreAuthorize("hasRole('freelancer')")
+    public List<Proposal> GetMyProposals(@AuthenticationPrincipal Jwt jwt) {
+        return serviceProposal.getProposalsByKeycloakId(jwt.getSubject());
+    }
+
     @GetMapping("/GetProject/{id}")
     @PreAuthorize("hasAnyRole('client', 'freelancer')")
     public Project GetProject(@PathVariable int id) {
         return serviceProposal.getProjectById(id);
     }
 
-    // BOTH: Feign — get Freelancer (view only)
     @GetMapping("/GetFreelancer/{id}")
     @PreAuthorize("hasAnyRole('client', 'freelancer')")
-    public User GetFreelancer(@PathVariable int id) {
+    public User GetFreelancer(@PathVariable long id) {
         return serviceProposal.getFreelancerById(id);
     }
 
-    // BOTH: Feign — get all Projects
     @GetMapping("/GetAllProjects")
     @PreAuthorize("hasAnyRole('client', 'freelancer')")
     public List<Project> GetAllProjects() {
         return serviceProposal.getAllProjects();
     }
 
-    // CLIENT: Accept proposal (new endpoint)
     @PutMapping("/AcceptProposal/{id}")
     @PreAuthorize("hasRole('client')")
     public ResponseEntity<Proposal> AcceptProposal(@PathVariable int id, @AuthenticationPrincipal Jwt jwt) {
-        Proposal accepted = serviceProposal.acceptProposal(id, jwt.getSubject());
-        return ResponseEntity.ok(accepted);
+        return ResponseEntity.ok(serviceProposal.acceptProposal(id, jwt.getSubject()));
     }
 
-    // FREELANCER: Withdraw proposal (new endpoint)
+    @PutMapping("/RejectProposal/{id}")
+    @PreAuthorize("hasRole('client')")
+    public ResponseEntity<Proposal> RejectProposal(@PathVariable int id, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(serviceProposal.rejectProposal(id, jwt.getSubject()));
+    }
+
     @PutMapping("/WithdrawProposal/{id}")
     @PreAuthorize("hasRole('freelancer')")
     public ResponseEntity<Proposal> WithdrawProposal(@PathVariable int id, @AuthenticationPrincipal Jwt jwt) {
-        Proposal withdrawn = serviceProposal.withdrawProposal(id, jwt.getSubject());
-        return ResponseEntity.ok(withdrawn);
+        return ResponseEntity.ok(serviceProposal.withdrawProposal(id, jwt.getSubject()));
     }
 }
